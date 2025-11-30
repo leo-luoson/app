@@ -18,7 +18,10 @@ const DashboardApp = {
         pieRelation: '国家',
         pieYear: 2021,
         pieParam: '单价',
-        macroStatsYear: 2021
+        macroStatsYear: 2021,
+        macroBarRelation: '国家',
+        macroBarParam: '金额',
+        macroBarYear: 2021
     },
 
     // AI对话管理器
@@ -34,6 +37,7 @@ const DashboardApp = {
         this.initCharts();
         this.bindEvents();
         this.loadMacroStats(this.state.macroStatsYear);
+        this.loadMacroBarData();
     },
 
     /**
@@ -249,6 +253,9 @@ const DashboardApp = {
         // 宏观统计年份切换
         this.bindMacroStatsEvents();
 
+        // 宏观条形图参数切换
+        this.bindMacroBarEvents();
+
         // AI对话功能
         this.bindLLMEvents();
     },
@@ -388,6 +395,36 @@ const DashboardApp = {
     },
 
     /**
+     * 绑定宏观条形图事件
+     */
+    bindMacroBarEvents() {
+        const relationSelect = document.getElementById('macroBarRelationSelect');
+        const paramSelect = document.getElementById('macroBarParamSelect');
+        const yearSelect = document.getElementById('macroBarYearSelect');
+
+        if (relationSelect) {
+            relationSelect.addEventListener('change', (e) => {
+                this.state.macroBarRelation = e.target.value;
+                this.loadMacroBarData();
+            });
+        }
+
+        if (paramSelect) {
+            paramSelect.addEventListener('change', (e) => {
+                this.state.macroBarParam = e.target.value;
+                this.loadMacroBarData();
+            });
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', (e) => {
+                this.state.macroBarYear = parseInt(e.target.value);
+                this.loadMacroBarData();
+            });
+        }
+    },
+
+    /**
      * 更新折线图
      */
     async updateLineChart() {
@@ -481,7 +518,7 @@ const DashboardApp = {
      */
     async loadMacroStats(year) {
         try {
-            const response = await fetch(`/api/macro_stats/${year}`);
+            const response = await fetch(`/api/macro_stats?year=${year}`);
             const result = await response.json();
 
             if (result.success && result.data) {
@@ -516,6 +553,54 @@ const DashboardApp = {
             formatNumber(stats.provinces || stats['省份总数'] || 0);
         document.getElementById('statProducts').textContent =
             formatNumber(stats.products || stats['商品种类总数'] || 0);
+    },
+
+    /**
+     * 加载宏观条形图数据
+     */
+    async loadMacroBarData() {
+        try {
+            const response = await fetch('/api/macro_bar_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    relation: this.state.macroBarRelation,
+                    param: this.state.macroBarParam,
+                    year: this.state.macroBarYear
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                this.updateMacroBarChart(result.data);
+            } else {
+                console.error('加载宏观条形图失败：', result.error);
+            }
+        } catch (error) {
+            console.error('加载宏观条形图失败：', error);
+        }
+    },
+
+    /**
+     * 更新宏观条形图
+     */
+    updateMacroBarChart(data) {
+        if (!this.charts.macroBarChart) return;
+
+        // 数据格式：数组，每个元素包含名称和值
+        // 例如：[{name: "中国", value: 1000000}, ...]
+        const xAxisData = data.map(item => item.name || item.country || item.province || item.product);
+        const seriesData = data.map(item => item.value || item.amount || item.count || item.price);
+
+        this.charts.macroBarChart.setOption({
+            xAxis: {
+                data: xAxisData
+            },
+            series: [{
+                data: seriesData
+            }]
+        });
     },
 
     /**

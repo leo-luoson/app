@@ -201,3 +201,28 @@ body {
     opacity: 0.8;
 }
 
+/* 表格样式 */
+.table {
+    color: #f5f6fa;
+}
+
+.table > tbody > tr > td {
+    border-color: rgba(255, 255, 255, 0.06);
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+
+.table-hover > tbody > tr:hover {
+    background-color: rgba(104, 109, 224, 0.08);
+}
+
+.table > tbody > tr > td.text-muted {
+    color: #bdc3ff !important;
+    font-size: 0.9rem;
+}
+
+.table > tbody > tr > td.fw-bold {
+    color: #f9ca24;
+    font-size: 1.1rem;
+}
+
