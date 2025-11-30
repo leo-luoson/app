@@ -64,4 +64,110 @@ body {
     color: #f5f6fa;
 }
 
+/* AI 对话界面样式 */
+#chatHistory {
+    background-color: #0b1020;
+}
+
+.chat-message {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-message .message-content {
+    background-color: rgba(104, 109, 224, 0.15) !important;
+    border: 1px solid rgba(104, 109, 224, 0.3);
+}
+
+.assistant-message .message-content {
+    background-color: rgba(15, 20, 40, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.message-text {
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+/* 图片预览样式 */
+#imagePreviewContainer {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 输入框在offcanvas中的样式 */
+#llmPanel .form-control {
+    background-color: rgba(15, 20, 40, 0.95);
+    border-color: rgba(104, 109, 224, 0.5);
+    color: #f5f6fa;
+}
+
+#llmPanel .form-control:focus {
+    background-color: rgba(15, 20, 40, 1);
+    border-color: rgba(104, 109, 224, 0.8);
+    box-shadow: 0 0 0 0.2rem rgba(104, 109, 224, 0.25);
+    color: #f5f6fa;
+}
+
+#llmPanel .form-control::placeholder {
+    color: rgba(189, 195, 255, 0.5);
+}
+
+/* 按钮样式优化 */
+#llmPanel .btn-outline-secondary {
+    border-color: rgba(104, 109, 224, 0.5);
+    color: #bdc3ff;
+}
+
+#llmPanel .btn-outline-secondary:hover {
+    background-color: rgba(104, 109, 224, 0.2);
+    border-color: rgba(104, 109, 224, 0.8);
+    color: #f5f6fa;
+}
+
+/* 滚动条样式 */
+#chatHistory::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chatHistory::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+#chatHistory::-webkit-scrollbar-thumb {
+    background: rgba(104, 109, 224, 0.5);
+    border-radius: 4px;
+}
+
+#chatHistory::-webkit-scrollbar-thumb:hover {
+    background: rgba(104, 109, 224, 0.7);
+}
+
+/* Modal样式 */
+.modal-content {
+    background-color: rgba(15, 20, 40, 0.98);
+    border: 1px solid rgba(104, 109, 224, 0.3);
+    color: #f5f6fa;
+}
 
