@@ -480,37 +480,73 @@ def create_app():
                 'error': str(e)
             }), 500
 
-    # 聚类分析API 传入参数是year 节点，feature： 贸易方式_金额
+    # 聚类分析API 传入参数是year 节点，feature
     @app.route("/api/cluster_analysis", methods=["POST"])
     def api_cluster_analysis():
         """
         获取聚类分析数据
-        接收参数：year, feature
-        返回：聚类结果
+        接收参数：year, node_type（贸易国家/商品注册地/贸易方式）, feature（金额总额_贸易条数等）
+        返回：聚类结果数据，以及地图数据（如果是贸易国家）
         """
         try:
             data = request.get_json()
             year = int(data.get('year'))
-            node = data.get('node', '国家')
-            feature = data.get('feature', '贸易方式_金额')
-            
+            node_type = data.get('node_type', '贸易国家')
+            feature = data.get('feature', '金额总额_贸易条数')
+
+            # 构建聚类数据文件路径
             json_path = os.path.join(
                 os.path.dirname(__file__),
-                f'json/cluster/kmeans/kmeans_data_{year}_{node}_{feature}.json'
+                f'json/cluster/kmeans/kmeans_data_{year}_{node_type}_{feature}.json'
             )
-            if os.path.exists(json_path):
-                with open(json_path, 'r', encoding='utf-8') as f:
-                    cluster_data = json.load(f)
 
-                return jsonify({
-                    'success': True,
-                    'data': cluster_data
-                })
-            else:
+            if not os.path.exists(json_path):
                 return jsonify({
                     'success': False,
-                    'error': f'{year}年的聚类数据不存在'
+                    'error': f'{year}年的{node_type}_{feature}聚类数据不存在'
                 }), 404
+
+            # 读取聚类数据
+            with open(json_path, 'r', encoding='utf-8') as f:
+                cluster_data = json.load(f)
+
+            # 如果是贸易国家，加载地图数据和国家名称映射
+            response_data = {
+                'success': True,
+                'data': cluster_data,
+                'node_type': node_type
+            }
+
+            if node_type == '贸易国家':
+                # 加载世界地图数据
+                world_map_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'json/cluster/world.json'
+                )
+                if os.path.exists(world_map_path):
+                    with open(world_map_path, 'r', encoding='utf-8') as f:
+                        response_data['map_data'] = json.load(f)
+
+                # 加载国家名称映射
+                country_mapping_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'json/cluster/country_name_mapping.json'
+                )
+                if os.path.exists(country_mapping_path):
+                    with open(country_mapping_path, 'r', encoding='utf-8') as f:
+                        response_data['country_mapping'] = json.load(f)
+
+            elif node_type == '商品注册地':
+                # 加载中国地图数据
+                china_map_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'json/cluster/china.json'
+                )
+                if os.path.exists(china_map_path):
+                    with open(china_map_path, 'r', encoding='utf-8') as f:
+                        response_data['map_data'] = json.load(f)
+
+            return jsonify(response_data)
 
         except Exception as e:
             return jsonify({

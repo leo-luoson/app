@@ -20,7 +20,10 @@ const DashboardApp = {
         pieParam: '单价',
         macroStatsYear: 2021,
         macroBarXAxis: 'country',
-        macroBarYear: 2017
+        macroBarYear: 2017,
+        clusterNodeType: '贸易国家',
+        clusterYear: 2021,
+        clusterFeature: '金额总额_贸易条数'
     },
 
     // AI对话管理器
@@ -37,6 +40,7 @@ const DashboardApp = {
         this.bindEvents();
         this.loadMacroStats(this.state.macroStatsYear);
         this.updateMacroBarChart();
+        this.updateClusterChart();
     },
 
     /**
@@ -193,47 +197,49 @@ const DashboardApp = {
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'item',
-                formatter: '{b}: {c}'
+                formatter: params => {
+                    if (params.componentType === 'series' && params.seriesType === 'scatter') {
+                        const data = params.data;
+                        return `${data.name}<br/>
+                                聚类: ${data.cluster}<br/>
+                                金额总额: ${this.formatNumber(data.金额总额)}<br/>
+                                贸易条数: ${data.贸易条数}<br/>
+                                单笔均价: ${this.formatNumber(data.单笔均价)}`;
+                    }
+                    return params.name;
+                }
+            },
+            grid: {
+                left: '10%',
+                right: '10%',
+                bottom: '15%',
+                top: '10%'
             },
             xAxis: {
-                show: false,
-                min: 0,
-                max: 100
+                type: 'value',
+                name: '特征1',
+                nameLocation: 'middle',
+                nameGap: 30,
+                axisLine: { lineStyle: { color: '#7f8fa6' } },
+                splitLine: { lineStyle: { color: 'rgba(127, 143, 166, 0.2)' } }
             },
             yAxis: {
-                show: false,
-                min: 0,
-                max: 100
+                type: 'value',
+                name: '特征2',
+                nameLocation: 'middle',
+                nameGap: 40,
+                axisLine: { lineStyle: { color: '#7f8fa6' } },
+                splitLine: { lineStyle: { color: 'rgba(127, 143, 166, 0.2)' } }
             },
-            series: [{
-                type: 'scatter',
-                symbolSize: val => 10 + val[2] / 5,
-                data: this.generateClusterData(),
-                itemStyle: {
-                    color: params => {
-                        const colors = ['#22a6b3', '#f9ca24', '#eb4d4b', '#6ab04c'];
-                        return colors[params.dataIndex % 4];
-                    }
-                }
-            }]
+            legend: {
+                data: [],
+                top: '5%',
+                textStyle: { color: '#bdc3ff' }
+            },
+            series: []
         };
         this.charts.clusterChart.setOption(option);
         window.addEventListener('resize', () => this.charts.clusterChart && this.charts.clusterChart.resize());
-    },
-
-    /**
-     * 生成聚类数据（示例）
-     */
-    generateClusterData() {
-        const data = [];
-        for (let i = 0; i < 50; i++) {
-            data.push([
-                Math.random() * 100,
-                Math.random() * 100,
-                Math.random() * 100
-            ]);
-        }
-        return data;
     },
 
     /**
@@ -254,6 +260,9 @@ const DashboardApp = {
 
         // 宏观条形图参数切换
         this.bindMacroBarEvents();
+
+        // 聚类分析参数切换
+        this.bindClusterEvents();
 
         // AI对话功能
         this.bindLLMEvents();
@@ -544,6 +553,153 @@ const DashboardApp = {
             formatNumber(stats.provinces || stats['进口省份总数'] || 0);
         document.getElementById('statProducts').textContent =
             formatNumber(stats.products || stats['进口商品种类总数'] || 0);
+    },
+
+    /**
+     * 绑定聚类分析事件
+     */
+    bindClusterEvents() {
+        const nodeTypeSelect = document.getElementById('clusterNodeTypeSelect');
+        const yearSelect = document.getElementById('clusterYearSelect');
+        const featureSelect = document.getElementById('clusterFeatureSelect');
+
+        if (nodeTypeSelect) {
+            nodeTypeSelect.addEventListener('change', (e) => {
+                this.state.clusterNodeType = e.target.value;
+                this.updateClusterChart();
+            });
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', (e) => {
+                this.state.clusterYear = parseInt(e.target.value);
+                this.updateClusterChart();
+            });
+        }
+
+        if (featureSelect) {
+            featureSelect.addEventListener('change', (e) => {
+                this.state.clusterFeature = e.target.value;
+                this.updateClusterChart();
+            });
+        }
+    },
+
+    /**
+     * 更新聚类图表
+     */
+    async updateClusterChart() {
+        this.showLoading('加载聚类数据...');
+
+        try {
+            const response = await fetch('/api/cluster_analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    year: this.state.clusterYear,
+                    node_type: this.state.clusterNodeType,
+                    feature: this.state.clusterFeature
+                })
+            });
+
+            const result = await response.json();
+            this.hideLoading();
+
+            if (result.success && result.data) {
+                this.renderClusterChart(result.data, result.node_type, result.map_data, result.country_mapping);
+            } else {
+                console.error('加载聚类数据失败：', result.error);
+                alert('加载聚类数据失败：' + result.error);
+            }
+        } catch (error) {
+            this.hideLoading();
+            console.error('加载聚类数据失败：', error);
+            alert('加载聚类数据失败：' + error.message);
+        }
+    },
+
+    /**
+     * 渲染聚类图表
+     */
+    renderClusterChart(clusterData, nodeType, mapData, countryMapping) {
+        if (!this.charts.clusterChart) return;
+
+        // 解析特征名称
+        const featureParts = this.state.clusterFeature.split('_');
+        const xAxisName = featureParts[0] || '特征1';
+        const yAxisName = featureParts[1] || '特征2';
+
+        // 准备聚类颜色
+        const clusterColors = [
+            '#22a6b3', '#f9ca24', '#eb4d4b', '#6ab04c',
+            '#4834d4', '#f0932b', '#eb3b5a', '#fa8231',
+            '#20bf6b', '#0fb9b1', '#2d98da', '#a55eea'
+        ];
+
+        // 准备系列数据
+        const series = [];
+        const legendData = [];
+
+        // 遍历每个聚类
+        Object.keys(clusterData).forEach(clusterId => {
+            const clusterItems = clusterData[clusterId];
+            const clusterName = `聚类 ${clusterId}`;
+            legendData.push(clusterName);
+
+            // 准备散点数据
+            const scatterData = clusterItems.map(item => ({
+                name: item['节点名称'],
+                value: [
+                    item[xAxisName] || 0,
+                    item[yAxisName] || 0
+                ],
+                cluster: clusterId,
+                金额总额: item['金额总额'],
+                贸易条数: item['贸易条数'],
+                单笔均价: item['单笔均价']
+            }));
+
+            series.push({
+                name: clusterName,
+                type: 'scatter',
+                data: scatterData,
+                symbolSize: 8,
+                itemStyle: {
+                    color: clusterColors[parseInt(clusterId) % clusterColors.length]
+                },
+                emphasis: {
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }
+            });
+        });
+
+        // 更新图表
+        this.charts.clusterChart.setOption({
+            legend: {
+                data: legendData
+            },
+            xAxis: {
+                name: xAxisName
+            },
+            yAxis: {
+                name: yAxisName
+            },
+            series: series
+        }, true);
+    },
+
+    /**
+     * 格式化数字
+     */
+    formatNumber(num) {
+        if (!num) return '0';
+        if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+        if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+        if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+        return num.toFixed(2);
     },
 
     /**
