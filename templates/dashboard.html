@@ -218,28 +218,28 @@
                 <div class="card-header fw-bold">贸易数据聚类分析</div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">国家/省份</label>
-                            <select class="form-select" id="clusterRegionSelect">
-                                <option value="国家" selected>按国家聚类</option>
-                                <option value="省份">按省份聚类</option>
+                        <div class="col-md-3">
+                            <label class="form-label small">节点类型</label>
+                            <select class="form-select form-select-sm" id="clusterNodeTypeSelect">
+                                <option value="贸易国家" selected>贸易国家</option>
+                                <option value="商品注册地">商品注册地</option>
+                                <option value="贸易方式">贸易方式</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">年份</label>
-                            <select class="form-select" id="clusterYearSelect">
+                        <div class="col-md-3">
+                            <label class="form-label small">年份</label>
+                            <select class="form-select form-select-sm" id="clusterYearSelect">
                                 {% for y in range(2012, 2022) %}
                                     <option value="{{ y }}" {% if y == 2021 %}selected{% endif %}>{{ y }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">聚类特征</label>
-                            <select class="form-select" id="clusterFeatureSelect">
-                                <option value="high_growth" selected>高增长</option>
-                                <option value="stable">稳定</option>
-                                <option value="volatile">波动</option>
-                                <option value="declining">下降</option>
+                        <div class="col-md-6">
+                            <label class="form-label small">聚类特征</label>
+                            <select class="form-select form-select-sm" id="clusterFeatureSelect">
+                                <option value="金额总额_单笔均价" selected>金额总额 + 单笔均价</option>
+                                <option value="金额总额_贸易条数">金额总额 + 贸易条数</option>
+                                <option value="贸易条数_单笔均价">贸易条数 + 单笔均价</option>
                             </select>
                         </div>
                     </div>
