@@ -1,0 +1,9 @@
+Flask
+psycopg2-binary
+anthropic
+openai
+mindspore
+mindcv
+Pillow
+numpy
+werkzeug

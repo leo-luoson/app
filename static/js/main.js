@@ -3,133 +3,133 @@ const TradeApp = (function () {
     let priceChart, macroBarChart, mapChart, recognizedProductChart;
     let selectedProduct = null;
 
-    // === Page 1: 单价预测 ===
-    function initPriceChart() {
-        const el = document.getElementById('priceChart');
-        if (!el || typeof echarts === 'undefined') return;
-        priceChart = echarts.init(el);
+    // // === Page 1: 单价预测 ===
+    // function initPriceChart() {
+    //     const el = document.getElementById('priceChart');
+    //     if (!el || typeof echarts === 'undefined') return;
+    //     priceChart = echarts.init(el);
 
-        const years = [];
-        for (let y = 2015; y <= 2024; y++) years.push(y);
+    //     const years = [];
+    //     for (let y = 2015; y <= 2024; y++) years.push(y);
 
-        const option = {
-            backgroundColor: 'transparent',
-            tooltip: { trigger: 'axis' },
-            grid: { left: '5%', right: '4%', bottom: '8%', top: '12%' },
-            xAxis: {
-                type: 'category',
-                data: years,
-                axisLine: { lineStyle: { color: '#7f8fa6' } }
-            },
-            yAxis: {
-                type: 'value',
-                name: '单价（示意）',
-                axisLine: { lineStyle: { color: '#7f8fa6' } },
-                splitLine: { lineStyle: { color: 'rgba(127, 143, 166, 0.2)' } }
-            },
-            series: [{
-                name: '预测单价',
-                type: 'line',
-                smooth: true,
-                data: [100, 120, 110, 130, 150, 160, 180, 175, 190, 210],
-                areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: 'rgba(104, 109, 224, 0.5)' },
-                        { offset: 1, color: 'rgba(104, 109, 224, 0.0)' }
-                    ])
-                },
-                lineStyle: { color: '#686de0' },
-                itemStyle: { color: '#f9ca24' }
-            }]
-        };
-        priceChart.setOption(option);
-        window.addEventListener('resize', () => priceChart && priceChart.resize());
-    }
+    //     const option = {
+    //         backgroundColor: 'transparent',
+    //         tooltip: { trigger: 'axis' },
+    //         grid: { left: '5%', right: '4%', bottom: '8%', top: '12%' },
+    //         xAxis: {
+    //             type: 'category',
+    //             data: years,
+    //             axisLine: { lineStyle: { color: '#7f8fa6' } }
+    //         },
+    //         yAxis: {
+    //             type: 'value',
+    //             name: '单价（示意）',
+    //             axisLine: { lineStyle: { color: '#7f8fa6' } },
+    //             splitLine: { lineStyle: { color: 'rgba(127, 143, 166, 0.2)' } }
+    //         },
+    //         series: [{
+    //             name: '预测单价',
+    //             type: 'line',
+    //             smooth: true,
+    //             data: [100, 120, 110, 130, 150, 160, 180, 175, 190, 210],
+    //             areaStyle: {
+    //                 color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+    //                     { offset: 0, color: 'rgba(104, 109, 224, 0.5)' },
+    //                     { offset: 1, color: 'rgba(104, 109, 224, 0.0)' }
+    //                 ])
+    //             },
+    //             lineStyle: { color: '#686de0' },
+    //             itemStyle: { color: '#f9ca24' }
+    //         }]
+    //     };
+    //     priceChart.setOption(option);
+    //     window.addEventListener('resize', () => priceChart && priceChart.resize());
+    // }
 
-    function initProductSelector() {
-        const categoryList = document.getElementById('productCategoryList');
-        const productList = document.getElementById('productList');
-        const confirmBtn = document.getElementById('btnConfirmProduct');
+    // function initProductSelector() {
+    //     const categoryList = document.getElementById('productCategoryList');
+    //     const productList = document.getElementById('productList');
+    //     const confirmBtn = document.getElementById('btnConfirmProduct');
 
-        if (!categoryList || !productList) return;
+    //     if (!categoryList || !productList) return;
 
-        // Mock data for demonstration only.
-        const mockProducts = {
-            electronic: ['手机', '笔记本电脑', '液晶显示器', '路由器', '芯片'],
-            agri: ['大豆', '玉米', '小麦', '咖啡豆', '棉花'],
-            textile: ['棉布', '毛衣', '牛仔裤', '鞋靴', '箱包']
-        };
+    //     // Mock data for demonstration only.
+    //     const mockProducts = {
+    //         electronic: ['手机', '笔记本电脑', '液晶显示器', '路由器', '芯片'],
+    //         agri: ['大豆', '玉米', '小麦', '咖啡豆', '棉花'],
+    //         textile: ['棉布', '毛衣', '牛仔裤', '鞋靴', '箱包']
+    //     };
 
-        function renderProducts(categoryKey) {
-            const items = mockProducts[categoryKey] || [];
-            productList.innerHTML = items.map(p => `
-                <div class="col-6 col-md-4">
-                    <button type="button"
-                            class="btn btn-outline-light w-100 btn-product-item"
-                            data-product="${p}">
-                        ${p}
-                    </button>
-                </div>
-            `).join('');
+    //     function renderProducts(categoryKey) {
+    //         const items = mockProducts[categoryKey] || [];
+    //         productList.innerHTML = items.map(p => `
+    //             <div class="col-6 col-md-4">
+    //                 <button type="button"
+    //                         class="btn btn-outline-light w-100 btn-product-item"
+    //                         data-product="${p}">
+    //                     ${p}
+    //                 </button>
+    //             </div>
+    //         `).join('');
 
-            productList.querySelectorAll('.btn-product-item').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    productList.querySelectorAll('.btn-product-item').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    selectedProduct = btn.dataset.product;
-                });
-            });
-        }
+    //         productList.querySelectorAll('.btn-product-item').forEach(btn => {
+    //             btn.addEventListener('click', () => {
+    //                 productList.querySelectorAll('.btn-product-item').forEach(b => b.classList.remove('active'));
+    //                 btn.classList.add('active');
+    //                 selectedProduct = btn.dataset.product;
+    //             });
+    //         });
+    //     }
 
-        // Initial render
-        renderProducts('electronic');
+    //     // Initial render
+    //     renderProducts('electronic');
 
-        categoryList.querySelectorAll('.list-group-item').forEach(li => {
-            li.addEventListener('click', () => {
-                categoryList.querySelectorAll('.list-group-item').forEach(el => el.classList.remove('active'));
-                li.classList.add('active');
-                renderProducts(li.getAttribute('data-category'));
-            });
-        });
+    //     categoryList.querySelectorAll('.list-group-item').forEach(li => {
+    //         li.addEventListener('click', () => {
+    //             categoryList.querySelectorAll('.list-group-item').forEach(el => el.classList.remove('active'));
+    //             li.classList.add('active');
+    //             renderProducts(li.getAttribute('data-category'));
+    //         });
+    //     });
 
-        confirmBtn && confirmBtn.addEventListener('click', () => {
-            if (!selectedProduct) {
-                alert('请先选择具体商品');
-                return;
-            }
-            // NOTE: Here we only close modal. Later you can store the product to a hidden input
-            // and send it to backend API /api/predict when实现预测逻辑.
-            const modalEl = document.getElementById('productModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal && modal.hide();
-        });
-    }
+    //     confirmBtn && confirmBtn.addEventListener('click', () => {
+    //         if (!selectedProduct) {
+    //             alert('请先选择具体商品');
+    //             return;
+    //         }
+    //         // NOTE: Here we only close modal. Later you can store the product to a hidden input
+    //         // and send it to backend API /api/predict when实现预测逻辑.
+    //         const modalEl = document.getElementById('productModal');
+    //         const modal = bootstrap.Modal.getInstance(modalEl);
+    //         modal && modal.hide();
+    //     });
+    // }
 
-    function bindPredictionEvents() {
-        const btnPredict = document.getElementById('btnPredict');
-        if (!btnPredict) return;
+    // function bindPredictionEvents() {
+    //     const btnPredict = document.getElementById('btnPredict');
+    //     if (!btnPredict) return;
 
-        btnPredict.addEventListener('click', () => {
-            if (!priceChart) return;
-            // For now just randomize line data to simulate a "prediction".
-            const base = 100;
-            const data = [];
-            for (let i = 0; i < 10; i++) {
-                data.push(Math.round(base + Math.random() * 60));
-            }
-            priceChart.setOption({
-                series: [{ data }]
-            });
+    //     btnPredict.addEventListener('click', () => {
+    //         if (!priceChart) return;
+    //         // For now just randomize line data to simulate a "prediction".
+    //         const base = 100;
+    //         const data = [];
+    //         for (let i = 0; i < 10; i++) {
+    //             data.push(Math.round(base + Math.random() * 60));
+    //         }
+    //         priceChart.setOption({
+    //             series: [{ data }]
+    //         });
 
-            // Placeholder: here you could call backend API.
-            // Example (to implement later):
-            // fetch('/api/predict', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify({...})
-            // }).then(res => res.json()).then(update chart);
-        });
-    }
+    //         // Placeholder: here you could call backend API.
+    //         // Example (to implement later):
+    //         // fetch('/api/predict', {
+    //         //   method: 'POST',
+    //         //   headers: { 'Content-Type': 'application/json' },
+    //         //   body: JSON.stringify({...})
+    //         // }).then(res => res.json()).then(update chart);
+    //     });
+    // }
 
     // === Page 2: 特征大屏 ===
     function initDashboardCharts() {
@@ -240,9 +240,6 @@ const TradeApp = (function () {
     }
 
     return {
-        initPriceChart,
-        initProductSelector,
-        bindPredictionEvents,
         initDashboardCharts
     };
 })();

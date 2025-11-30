@@ -191,7 +191,7 @@ def create_app():
 
             return jsonify({
                 'success': True,
-                'data': options
+                'data': list(options.keys())
             })
         except Exception as e:
             return jsonify({
@@ -214,7 +214,7 @@ def create_app():
 
             return jsonify({
                 'success': True,
-                'data': options
+                'data': list(options.keys())
             })
         except Exception as e:
             return jsonify({
@@ -260,7 +260,7 @@ def create_app():
 
             return jsonify({
                 'success': True,
-                'data': options
+                'data': list(options.keys())
             })
         except Exception as e:
             return jsonify({
