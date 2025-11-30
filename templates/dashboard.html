@@ -193,24 +193,24 @@
                         <div class="col-4">
                             <label class="form-label small">X轴对象</label>
                             <select class="form-select form-select-sm" id="macroXAxisSelect">
-                                <option value="country">国家</option>
+                                <option value="country" selected>国家</option>
                                 <option value="province">省份</option>
                                 <option value="product">商品</option>
-                                <option value="mode">贸易方式</option>
                             </select>
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Y轴数据</label>
                             <select class="form-select form-select-sm" id="macroYAxisSelect">
-                                <option value="top10">贸易额(Top10)</option>
-                                <option value="share">贸易额份额</option>
+                                <option value="amount" selected>贸易额</option>
+                                <option value="count">贸易次数</option>
+                                <option value="price">单价</option>
                             </select>
                         </div>
                         <div class="col-4">
                             <label class="form-label small">年份</label>
                             <select class="form-select form-select-sm" id="macroYearSelect">
-                                {% for y in range(2015, 2026) %}
-                                    <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}</option>
+                                {% for y in range(2012, 2022) %}
+                                    <option value="{{ y }}" {% if y == 2021 %}selected{% endif %}>{{ y }}</option>
                                 {% endfor %}
                             </select>
                         </div>

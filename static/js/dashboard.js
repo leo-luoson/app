@@ -34,6 +34,7 @@ const DashboardApp = {
         this.initCharts();
         this.bindEvents();
         this.loadMacroStats(this.state.macroStatsYear);
+        this.loadMacroBarData();
     },
 
     /**
@@ -249,6 +250,9 @@ const DashboardApp = {
         // 宏观统计年份切换
         this.bindMacroStatsEvents();
 
+        // 宏观条形图参数切换
+        this.bindMacroBarEvents();
+
         // AI对话功能
         this.bindLLMEvents();
     },
@@ -388,6 +392,27 @@ const DashboardApp = {
     },
 
     /**
+     * 绑定宏观条形图事件
+     */
+    bindMacroBarEvents() {
+        const xAxisSelect = document.getElementById('macroXAxisSelect');
+        const yAxisSelect = document.getElementById('macroYAxisSelect');
+        const yearSelect = document.getElementById('macroYearSelect');
+
+        if (xAxisSelect) {
+            xAxisSelect.addEventListener('change', () => this.loadMacroBarData());
+        }
+
+        if (yAxisSelect) {
+            yAxisSelect.addEventListener('change', () => this.loadMacroBarData());
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', () => this.loadMacroBarData());
+        }
+    },
+
+    /**
      * 更新折线图
      */
     async updateLineChart() {
@@ -481,7 +506,7 @@ const DashboardApp = {
      */
     async loadMacroStats(year) {
         try {
-            const response = await fetch(`/api/macro_stats/${year}`);
+            const response = await fetch(`/api/macro_stats?year=${year}`);
             const result = await response.json();
 
             if (result.success && result.data) {
@@ -516,6 +541,114 @@ const DashboardApp = {
             formatNumber(stats.provinces || stats['省份总数'] || 0);
         document.getElementById('statProducts').textContent =
             formatNumber(stats.products || stats['商品种类总数'] || 0);
+    },
+
+    /**
+     * 加载宏观条形图数据
+     */
+    async loadMacroBarData() {
+        const xAxisSelect = document.getElementById('macroXAxisSelect');
+        const yAxisSelect = document.getElementById('macroYAxisSelect');
+        const yearSelect = document.getElementById('macroYearSelect');
+
+        if (!xAxisSelect || !yAxisSelect || !yearSelect) return;
+
+        const xAxis = xAxisSelect.value;
+        const yAxis = yAxisSelect.value;
+        const year = parseInt(yearSelect.value);
+
+        // 映射前端选项到后端参数
+        const relationMap = {
+            'country': '国家',
+            'province': '省份',
+            'product': '商品'
+        };
+
+        const paramMap = {
+            'amount': '金额',
+            'count': '贸易次数',
+            'price': '单价'
+        };
+
+        const relation = relationMap[xAxis] || '国家';
+        const param = paramMap[yAxis] || '金额';
+
+        try {
+            const response = await fetch('/api/macro_bar_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    relation: relation,
+                    param: param,
+                    year: year
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                this.updateMacroBarChart(result.data, yAxis);
+            } else {
+                console.error('加载宏观条形图失败：', result.error);
+            }
+        } catch (error) {
+            console.error('加载宏观条形图失败：', error);
+        }
+    },
+
+    /**
+     * 更新宏观条形图
+     */
+    updateMacroBarChart(data, yAxisType) {
+        if (!this.charts.macroBarChart || !data || data.length === 0) return;
+
+        // 提取数据
+        const categories = data.map(item => item.name || item.国家 || item.省份 || item.商品);
+        const values = data.map(item => parseFloat(item.value || item.金额 || item.贸易额 || 0));
+
+        // Y轴名称映射
+        const yAxisNameMap = {
+            'amount': '贸易额',
+            'count': '贸易次数',
+            'price': '单价'
+        };
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' }
+            },
+            xAxis: {
+                type: 'category',
+                data: categories,
+                axisLine: { lineStyle: { color: '#7f8fa6' } },
+                axisLabel: {
+                    rotate: 30,
+                    interval: 0,
+                    color: '#bdc3ff'
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: yAxisNameMap[yAxisType] || '值',
+                axisLine: { lineStyle: { color: '#7f8fa6' } },
+                splitLine: { lineStyle: { color: 'rgba(127, 143, 166, 0.2)' } },
+                axisLabel: { color: '#bdc3ff' }
+            },
+            series: [{
+                type: 'bar',
+                data: values,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#f39c12' },
+                        { offset: 1, color: '#e67e22' }
+                    ])
+                },
+                barWidth: '60%'
+            }]
+        };
+
+        this.charts.macroBarChart.setOption(option, true);
     },
 
     /**
