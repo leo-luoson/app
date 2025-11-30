@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 # === 配置 ===
-ckpt_path = "../ckpt/resnet.ckpt"  # 模型权重路径
+ckpt_path = "ckpt/resnet.ckpt"  # 模型权重路径
 # 验证能用即可，二分类，实际最终更改模型和映射即可
 class_map = {
     0: "第20章-蔬菜、水果、坚果或植物其他部分的制品",
@@ -48,7 +48,7 @@ def predict_image(image_path):
         num_classes=NUM_CLASSES,
         pretrained=False  
     )
-
+    print(ckpt_path)
     param_dict = ms.load_checkpoint(ckpt_path)
     ms.load_param_into_net(network, param_dict)
     network.set_train(False)  

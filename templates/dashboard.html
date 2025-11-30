@@ -28,32 +28,187 @@
 </nav>
 
 <main class="container-fluid py-3">
-    <div class="row g-3">
-        <!-- 左侧：宏观数据特征（条形图） -->
-        <div class="col-xl-4">
+    <!-- 上部分：物品识别 + AI分析 + 折线图 + 饼图 -->
+    <div class="row g-3 mb-3">
+        <!-- 左侧：物品识别 + AI分析 -->
+        <div class="col-lg-3">
             <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">商品识别 &amp; AI分析</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">上传商品图片</label>
+                        <input type="file" class="form-control mb-2" id="productImageInput" accept="image/*">
+                        <button class="btn btn-primary w-100 mb-2" id="btnRecognizeProduct">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1" viewBox="0 0 16 16">
+                                <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                                <path d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/>
+                            </svg>
+                            识别商品章节
+                        </button>
+                        <div id="recognizedChapter" class="alert alert-info mb-2" style="display: none;">
+                            <small class="fw-bold">识别结果：</small>
+                            <div id="chapterName" class="mt-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">或手动选择章节</label>
+                        <input type="text" class="form-control" id="manualChapterInput"
+                               placeholder="输入商品章节名称">
+                    </div>
+
+                    <hr>
+
+                    <button class="btn btn-success w-100" id="btnOpenDashboardLLM" data-bs-toggle="offcanvas"
+                            data-bs-target="#dashboardLLMPanel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1" viewBox="0 0 16 16">
+                            <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                            <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 2.686-6 7-6s7 2.808 7 6c0 3.193-2.686 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
+                        </svg>
+                        调用 AI 大模型分析
+                    </button>
+
+                    <small class="text-muted d-block mt-2">
+                        识别商品后，可查看折线图和饼图数据，并使用AI进行深度分析
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间：折线图 -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">商品章节趋势折线图</span>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check" name="lineParam" id="lineParamPrice" value="单价" checked>
+                        <label class="btn btn-outline-primary" for="lineParamPrice">单价</label>
+
+                        <input type="radio" class="btn-check" name="lineParam" id="lineParamAmount" value="金额">
+                        <label class="btn btn-outline-primary" for="lineParamAmount">金额</label>
+
+                        <input type="radio" class="btn-check" name="lineParam" id="lineParamCount" value="贸易条数">
+                        <label class="btn btn-outline-primary" for="lineParamCount">贸易条数</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="lineChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：饼图 -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">商品章节分布饼图</div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <select class="form-select form-select-sm" id="pieRelationSelect">
+                                <option value="国家" selected>国家</option>
+                                <option value="省份">省份</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <select class="form-select form-select-sm" id="pieYearSelect">
+                                {% for y in range(2012, 2022) %}
+                                    <option value="{{ y }}" {% if y == 2021 %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <select class="form-select form-select-sm" id="pieParamSelect">
+                                <option value="单价" selected>单价</option>
+                                <option value="金额">金额</option>
+                                <option value="贸易条数">贸易条数</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="pieChart" class="chart-container" style="height: 320px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 下部分：左侧宏观数据 + 右侧聚类展示 -->
+    <div class="row g-3">
+        <!-- 左侧：宏观数据统计 + 条形图 -->
+        <div class="col-lg-5">
+            <!-- 宏观数据统计卡片 -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">宏观数据统计</span>
+                    <select class="form-select form-select-sm" id="macroStatsYear" style="width: auto;">
+                        {% for y in range(2012, 2022) %}
+                            <option value="{{ y }}" {% if y == 2021 %}selected{% endif %}>{{ y }}年</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6 col-md-4">
+                            <div class="stat-card p-3 rounded text-center">
+                                <div class="stat-icon mb-2">💰</div>
+                                <div class="stat-value" id="statTotalAmount">--</div>
+                                <div class="stat-label">总金额</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="stat-card p-3 rounded text-center">
+                                <div class="stat-icon mb-2">📊</div>
+                                <div class="stat-value" id="statTradeCount">--</div>
+                                <div class="stat-label">交易次数</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="stat-card p-3 rounded text-center">
+                                <div class="stat-icon mb-2">🌍</div>
+                                <div class="stat-value" id="statCountries">--</div>
+                                <div class="stat-label">贸易伙伴</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="stat-card p-3 rounded text-center">
+                                <div class="stat-icon mb-2">🏙️</div>
+                                <div class="stat-value" id="statProvinces">--</div>
+                                <div class="stat-label">省份总数</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="stat-card p-3 rounded text-center">
+                                <div class="stat-icon mb-2">📦</div>
+                                <div class="stat-value" id="statProducts">--</div>
+                                <div class="stat-label">商品种类</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 条形图 -->
+            <div class="card shadow-sm">
                 <div class="card-header fw-bold">宏观数据特征（条形图）</div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-12 mb-2">
-                            <label class="form-label">X 轴对象（国家 / 省份 / 商品 / 贸易方式）</label>
-                            <select class="form-select" id="macroXAxisSelect">
+                        <div class="col-4">
+                            <label class="form-label small">X轴对象</label>
+                            <select class="form-select form-select-sm" id="macroXAxisSelect">
                                 <option value="country">国家</option>
                                 <option value="province">省份</option>
                                 <option value="product">商品</option>
                                 <option value="mode">贸易方式</option>
                             </select>
                         </div>
-                        <div class="col-12 mb-2">
-                            <label class="form-label">Y 轴数据</label>
-                            <select class="form-select" id="macroYAxisSelect">
-                                <option value="top10">贸易额（Top 10）</option>
+                        <div class="col-4">
+                            <label class="form-label small">Y轴数据</label>
+                            <select class="form-select form-select-sm" id="macroYAxisSelect">
+                                <option value="top10">贸易额(Top10)</option>
                                 <option value="share">贸易额份额</option>
                             </select>
                         </div>
-                        <div class="col-12 mb-2">
-                            <label class="form-label">年份</label>
-                            <select class="form-select" id="macroYearSelect">
+                        <div class="col-4">
+                            <label class="form-label small">年份</label>
+                            <select class="form-select form-select-sm" id="macroYearSelect">
                                 {% for y in range(2015, 2026) %}
                                     <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}</option>
                                 {% endfor %}
@@ -65,113 +220,127 @@
             </div>
         </div>
 
-        <!-- 右侧：地图 + 物品识别 + 折线图 -->
-        <div class="col-xl-8">
-            <div class="row g-3">
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span class="fw-bold">贸易地图特征</span>
-                            <small class="text-muted">右侧地图，三个参数：国家、省份、聚类特征，及年份</small>
+        <!-- 右侧：聚类展示 -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">贸易数据聚类分析</div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">国家/省份</label>
+                            <select class="form-select" id="clusterRegionSelect">
+                                <option value="国家" selected>按国家聚类</option>
+                                <option value="省份">按省份聚类</option>
+                            </select>
                         </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">国家</label>
-                                    <select class="form-select" id="mapCountrySelect">
-                                        <option>中国</option>
-                                        <option>美国</option>
-                                        <option>日本</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">省份</label>
-                                    <select class="form-select" id="mapProvinceSelect">
-                                        <option>全部</option>
-                                        <option>广东</option>
-                                        <option>江苏</option>
-                                        <option>浙江</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">聚类特征</label>
-                                    <select class="form-select" id="mapClusterSelect">
-                                        <option>高增长</option>
-                                        <option>稳定</option>
-                                        <option>波动</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">年份</label>
-                                    <select class="form-select" id="mapYearSelect">
-                                        {% for y in range(2015, 2026) %}
-                                            <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div id="mapChart" class="chart-container"></div>
+                        <div class="col-md-4">
+                            <label class="form-label">年份</label>
+                            <select class="form-select" id="clusterYearSelect">
+                                {% for y in range(2012, 2022) %}
+                                    <option value="{{ y }}" {% if y == 2021 %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">聚类特征</label>
+                            <select class="form-select" id="clusterFeatureSelect">
+                                <option value="high_growth" selected>高增长</option>
+                                <option value="stable">稳定</option>
+                                <option value="volatile">波动</option>
+                                <option value="declining">下降</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-
-                <!-- 物品识别 + 折线图 -->
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span class="fw-bold">物品识别 &amp; 单价折线图</span>
-                            <small class="text-muted">上传商品图片，识别成功后展示该商品的单价折线图</small>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="border rounded p-3 h-100 d-flex flex-column">
-                                        <label class="form-label">上传商品图片</label>
-                                        <input type="file" class="form-control mb-2" id="productImageInput"
-                                               accept="image/*">
-                                        <button class="btn btn-primary mb-2" id="btnRecognizeProduct" disabled>
-                                            识别商品（预留：POST /api/recognize_product）
-                                        </button>
-                                        <small class="text-muted">
-                                            当前仅展示 UI。后续可将图片上传到后端识别，返回商品编码后刷新右侧折线图。
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div id="recognizedProductChart" class="chart-container"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- AI 大模型说明区 -->
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header fw-bold">AI 大模型辅助分析（预留接口）</div>
-                        <div class="card-body">
-                            <p class="text-muted mb-2">
-                                本页面同样预留大模型调用逻辑，可将地图与折线图的关键特征、聚类结果作为结构化输入，
-                                调用接口 <code>POST /api/llm_analyze_dashboard</code>，生成自然语言报告。
-                            </p>
-                            <button class="btn btn-outline-success" disabled>调用 LLM 生成综合分析报告（待实现）</button>
-                        </div>
-                    </div>
+                    <div id="clusterChart" class="chart-container" style="height: 460px;"></div>
                 </div>
             </div>
         </div>
     </div>
 </main>
 
+<!-- AI 大模型侧边面板（Dashboard专用） -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="dashboardLLMPanel" style="width: 500px;">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title">AI 贸易数据分析助手</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column p-0">
+        <!-- 对话历史区域 -->
+        <div id="dashboardChatHistory" class="flex-grow-1 p-3" style="overflow-y: auto; max-height: calc(100vh - 300px);">
+            <div class="text-center text-muted py-5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-chat-dots mb-3" viewBox="0 0 16 16">
+                    <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                    <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 2.686-6 7-6s7 2.808 7 6c0 3.193-2.686 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
+                </svg>
+                <p>开始与AI助手对话</p>
+                <small>您可以上传或粘贴截图，输入问题进行分析</small>
+            </div>
+        </div>
+
+        <!-- 图片预览区 -->
+        <div id="dashboardImagePreviewContainer" class="px-3 pb-2" style="display: none;">
+            <div class="position-relative d-inline-block">
+                <img id="dashboardImagePreview" src="" alt="预览" class="img-thumbnail" style="max-height: 100px; max-width: 200px;">
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" id="dashboardRemoveImage" style="padding: 2px 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="border-top p-3">
+            <div class="input-group mb-2">
+                <input type="file" id="dashboardImageUpload" accept="image/*" style="display: none;">
+                <button class="btn btn-outline-secondary" type="button" id="dashboardUploadImageBtn" title="上传图片">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                    </svg>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" id="dashboardCaptureChartBtn" title="截取图表">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                        <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0z"/>
+                        <path d="M12.5 9a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zm.354 5.854a.5.5 0 0 0 0-.708l-2-2a.5.5 0 0 0-.708.708l2 2a.5.5 0 0 0 .708 0zM0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-1.5 1.937V4a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v10l2.5-2.5a1 1 0 0 1 1.414 0l2.293 2.293"/>
+                    </svg>
+                </button>
+                <textarea class="form-control" id="dashboardLlmPrompt" rows="1"
+                          placeholder="输入您的问题，支持Ctrl+V粘贴图片..."
+                          style="resize: none; min-height: 38px; max-height: 120px;"></textarea>
+                <button class="btn btn-primary" type="button" id="dashboardBtnSendMessage">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+                    </svg>
+                </button>
+            </div>
+            <small class="text-muted">支持上传图片、粘贴截图(Ctrl+V)或截取图表</small>
+        </div>
+    </div>
+</div>
+
+<!-- 加载提示模态框 -->
+<div class="modal fade" id="dashboardLoadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0" id="loadingText">处理中...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        TradeApp.initDashboardCharts();
+        DashboardApp.init();
     });
 </script>
 </body>
 </html>
-
-

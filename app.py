@@ -428,7 +428,43 @@ def create_app():
                 'success': False,
                 'error': str(e)
             }), 500
+    # 聚类分析API 传入参数是year 节点，feature： 贸易方式_金额
+    @app.route("/api/cluster_analysis", methods=["POST"])
+    def api_cluster_analysis():
+        """
+        获取聚类分析数据
+        接收参数：year, feature
+        返回：聚类结果
+        """
+        try:
+            data = request.get_json()
+            year = int(data.get('year'))
+            node = data.get('node', '国家')
+            feature = data.get('feature', '贸易方式_金额')
+            
+            json_path = os.path.join(
+                os.path.dirname(__file__),
+                f'json/cluster/kmeans/kmeans_data_{year}_{node}_{feature}.json'
+            )
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    cluster_data = json.load(f)
 
+                return jsonify({
+                    'success': True,
+                    'data': cluster_data
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'{year}年的聚类数据不存在'
+                }), 404
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
     return app
 
 # 测试
