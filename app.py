@@ -397,13 +397,14 @@ def create_app():
                 'error': str(e)
             }), 500
 
-    @app.route("/api/macro_stats/<int:year>", methods=["GET"])
-    def api_macro_stats(year):
+    @app.route("/api/macro_stats", methods=["GET"])
+    def api_macro_stats():
         """
         获取宏观统计数据
         返回：总金额、交易次数、贸易伙伴总数、省份总数、商品种类总数
         """
         try:
+            year = int(request.args.get('year'))
             json_path = os.path.join(
                 os.path.dirname(__file__),
                 f'json/total_stats/total_stats_{year}.json'
