@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>贸易单价预测</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">贸易分析平台</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">单价预测</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('dashboard') }}">特征大屏</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container-fluid py-3">
+    <div class="row g-3">
+        <!-- 参数选择区 -->
+        <div class="col-lg-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-bold">参数选择：贸易单价预测</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">商品</label>
+                        <button class="btn btn-outline-primary w-100" data-bs-toggle="modal"
+                                data-bs-target="#productModal">
+                            选择商品（分类 &gt; 商品）
+                        </button>
+                        <div class="form-text">共约 98 类、8000 多种商品（示意）。</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">贸易国家</label>
+                        <select class="form-select" id="countrySelect">
+                            <option value="">请选择国家</option>
+                            <option>中国</option>
+                            <option>美国</option>
+                            <option>日本</option>
+                            <option>德国</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">省份</label>
+                        <select class="form-select" id="provinceSelect">
+                            <option value="">全部省份</option>
+                            <option>广东</option>
+                            <option>江苏</option>
+                            <option>浙江</option>
+                            <option>上海</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">贸易方式</label>
+                        <select class="form-select" id="tradeModeSelect">
+                            <option value="">请选择贸易方式</option>
+                            <option>一般贸易</option>
+                            <option>加工贸易</option>
+                            <option>服务贸易</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">计价单位</label>
+                        <select class="form-select" id="unitSelect">
+                            <option>美元/吨</option>
+                            <option>美元/千克</option>
+                            <option>人民币/吨</option>
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">起始年份</label>
+                            <select class="form-select" id="startYearSelect">
+                                {% for y in range(2015, 2026) %}
+                                    <option value="{{ y }}">{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">终止年份</label>
+                            <select class="form-select" id="endYearSelect">
+                                {% for y in range(2015, 2026) %}
+                                    <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button id="btnPredict" class="btn btn-primary">
+                            预测单价（静态示例）
+                        </button>
+                        <button id="btnOpenLLM" class="btn btn-outline-success" data-bs-toggle="offcanvas"
+                                data-bs-target="#llmPanel">
+                            调用 AI 大模型（预留接口）
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表展示区 -->
+        <div class="col-lg-9">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">预测结果折线图（ECharts 占位）</span>
+                    <small class="text-muted">当前为静态示例，后续通过后端 /api 接口获取真实数据</small>
+                </div>
+                <div class="card-body">
+                    <div id="priceChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- 商品选择弹窗：先分类，再具体商品 -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">选择商品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 border-end">
+                        <h6 class="mb-2">商品大类</h6>
+                        <ul class="list-group" id="productCategoryList">
+                            <!-- 示例分类，实际可通过 API 加载 -->
+                            <li class="list-group-item list-group-item-action active" data-category="electronic">
+                                电子产品
+                            </li>
+                            <li class="list-group-item list-group-item-action" data-category="agri">
+                                农产品
+                            </li>
+                            <li class="list-group-item list-group-item-action" data-category="textile">
+                                纺织品
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-8">
+                        <h6 class="mb-2">具体商品（示例数据）</h6>
+                        <div id="productList" class="row g-2">
+                            <!-- 通过 JS 根据分类填充 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmProduct">确定选择</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI 大模型侧边面板（offcanvas） -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="llmPanel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">AI 大模型分析（预留）</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+        <p class="text-muted small">
+            此区域用于与大模型交互：可上传当前 ECharts 图像、传入参数与 Prompt，调用后端 LLM 接口返回分析结果。
+            目前仅为静态 UI，占位接口：
+            <code>POST /api/llm_analyze_chart</code>
+        </p>
+        <div class="mb-3">
+            <label class="form-label">ECharts 截图（示意）</label>
+            <div class="border rounded d-flex align-items-center justify-content-center py-5 mb-2 bg-light">
+                <span class="text-muted">这里显示折线图截图 / Base64（占位）</span>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" disabled>重新截取当前图表（待实现）</button>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">分析提示词 Prompt</label>
+            <textarea class="form-control" rows="4" id="llmPrompt"
+                      placeholder="例如：请根据图中不同年份的单价变化，分析价格波动原因并给出趋势判断。"></textarea>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button class="btn btn-success" id="btnCallLLM" disabled>
+                调用 LLM 接口（示例：POST /api/llm_analyze_chart）
+            </button>
+        </div>
+
+        <hr>
+
+        <div>
+            <label class="form-label">模型返回结果（示例）</label>
+            <div class="border rounded p-3 bg-light llm-result-placeholder">
+                <p class="text-muted mb-0">
+                    LLM 分析结果将在此展示。当前展示的是占位文本，用于说明布局和交互逻辑。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JS: Bootstrap + ECharts + 自定义逻辑 -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        TradeApp.initPriceChart();
+        TradeApp.initProductSelector();
+        TradeApp.bindPredictionEvents();
+    });
+</script>
+</body>
+</html>
+
+
