@@ -18,7 +18,9 @@ const DashboardApp = {
         pieRelation: '国家',
         pieYear: 2021,
         pieParam: '单价',
-        macroStatsYear: 2021
+        macroStatsYear: 2021,
+        macroBarXAxis: 'country',
+        macroBarYear: 2017
     },
 
     // AI对话管理器
@@ -34,6 +36,7 @@ const DashboardApp = {
         this.initCharts();
         this.bindEvents();
         this.loadMacroStats(this.state.macroStatsYear);
+        this.updateMacroBarChart();
     },
 
     /**
@@ -249,6 +252,9 @@ const DashboardApp = {
         // 宏观统计年份切换
         this.bindMacroStatsEvents();
 
+        // 宏观条形图参数切换
+        this.bindMacroBarEvents();
+
         // AI对话功能
         this.bindLLMEvents();
     },
@@ -388,6 +394,28 @@ const DashboardApp = {
     },
 
     /**
+     * 绑定宏观条形图事件
+     */
+    bindMacroBarEvents() {
+        const xAxisSelect = document.getElementById('macroXAxisSelect');
+        const yearSelect = document.getElementById('macroBarYearSelect');
+
+        if (xAxisSelect) {
+            xAxisSelect.addEventListener('change', (e) => {
+                this.state.macroBarXAxis = e.target.value;
+                this.updateMacroBarChart();
+            });
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', (e) => {
+                this.state.macroBarYear = parseInt(e.target.value);
+                this.updateMacroBarChart();
+            });
+        }
+    },
+
+    /**
      * 更新折线图
      */
     async updateLineChart() {
@@ -481,7 +509,7 @@ const DashboardApp = {
      */
     async loadMacroStats(year) {
         try {
-            const response = await fetch(`/api/macro_stats/${year}`);
+            const response = await fetch(`/api/macro_stats?year=${year}`);
             const result = await response.json();
 
             if (result.success && result.data) {
@@ -509,13 +537,65 @@ const DashboardApp = {
         document.getElementById('statTotalAmount').textContent =
             formatNumber(stats.total_amount || stats['总金额'] || 0);
         document.getElementById('statTradeCount').textContent =
-            formatNumber(stats.trade_count || stats['交易次数'] || 0);
+            formatNumber(stats.trade_count || stats['总交易次数'] || 0);
         document.getElementById('statCountries').textContent =
             formatNumber(stats.countries || stats['贸易伙伴总数'] || 0);
         document.getElementById('statProvinces').textContent =
-            formatNumber(stats.provinces || stats['省份总数'] || 0);
+            formatNumber(stats.provinces || stats['进口省份总数'] || 0);
         document.getElementById('statProducts').textContent =
-            formatNumber(stats.products || stats['商品种类总数'] || 0);
+            formatNumber(stats.products || stats['进口商品种类总数'] || 0);
+    },
+
+    /**
+     * 更新宏观条形图
+     */
+    async updateMacroBarChart() {
+        try {
+            // 映射前端值到后端期望的中文值
+            const relationMap = {
+                'country': '国家',
+                'province': '省份',
+                'product': '商品'
+            };
+
+            const response = await fetch('/api/macro_bar_data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    relation: relationMap[this.state.macroBarXAxis] || '国家',
+                    param: '金额',  // 固定为金额（贸易额Top10）
+                    year: this.state.macroBarYear
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                const barData = result.data;
+
+                // 提取x轴数据（名称）和y轴数据（数值）
+                const xAxisData = barData.map(item => item.x);
+                const yAxisData = barData.map(item => item.y);
+                const unit = barData.length > 0 ? barData[0].s : '';
+
+                // 更新图表
+                this.charts.macroBarChart.setOption({
+                    xAxis: {
+                        data: xAxisData
+                    },
+                    yAxis: {
+                        name: unit
+                    },
+                    series: [{
+                        data: yAxisData
+                    }]
+                });
+            } else {
+                console.error('加载条形图失败：', result.error);
+            }
+        } catch (error) {
+            console.error('加载条形图失败：', error);
+        }
     },
 
     /**

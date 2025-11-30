@@ -148,35 +148,35 @@
                     <div class="row g-2">
                         <div class="col-6 col-md-4">
                             <div class="stat-card p-3 rounded text-center">
-                                <div class="stat-icon mb-2">💰</div>
+                                <div class="stat-icon mb-2"></div>
                                 <div class="stat-value" id="statTotalAmount">--</div>
                                 <div class="stat-label">总金额</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-4">
                             <div class="stat-card p-3 rounded text-center">
-                                <div class="stat-icon mb-2">📊</div>
+                                <div class="stat-icon mb-2"></div>
                                 <div class="stat-value" id="statTradeCount">--</div>
                                 <div class="stat-label">交易次数</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-4">
                             <div class="stat-card p-3 rounded text-center">
-                                <div class="stat-icon mb-2">🌍</div>
+                                <div class="stat-icon mb-2"></div>
                                 <div class="stat-value" id="statCountries">--</div>
                                 <div class="stat-label">贸易伙伴</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-4">
                             <div class="stat-card p-3 rounded text-center">
-                                <div class="stat-icon mb-2">🏙️</div>
+                                <div class="stat-icon mb-2"></div>
                                 <div class="stat-value" id="statProvinces">--</div>
                                 <div class="stat-label">省份总数</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-4">
                             <div class="stat-card p-3 rounded text-center">
-                                <div class="stat-icon mb-2">📦</div>
+                                <div class="stat-icon mb-2"></div>
                                 <div class="stat-value" id="statProducts">--</div>
                                 <div class="stat-label">商品种类</div>
                             </div>
@@ -190,27 +190,19 @@
                 <div class="card-header fw-bold">宏观数据特征（条形图）</div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small">X轴对象</label>
                             <select class="form-select form-select-sm" id="macroXAxisSelect">
-                                <option value="country">国家</option>
+                                <option value="country" selected>国家</option>
                                 <option value="province">省份</option>
                                 <option value="product">商品</option>
-                                <option value="mode">贸易方式</option>
                             </select>
                         </div>
-                        <div class="col-4">
-                            <label class="form-label small">Y轴数据</label>
-                            <select class="form-select form-select-sm" id="macroYAxisSelect">
-                                <option value="top10">贸易额(Top10)</option>
-                                <option value="share">贸易额份额</option>
-                            </select>
-                        </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small">年份</label>
-                            <select class="form-select form-select-sm" id="macroYearSelect">
-                                {% for y in range(2015, 2026) %}
-                                    <option value="{{ y }}" {% if y == 2024 %}selected{% endif %}>{{ y }}</option>
+                            <select class="form-select form-select-sm" id="macroBarYearSelect">
+                                {% for y in range(2012, 2022) %}
+                                    <option value="{{ y }}" {% if y == 2017 %}selected{% endif %}>{{ y }}</option>
                                 {% endfor %}
                             </select>
                         </div>
