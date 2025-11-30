@@ -428,6 +428,57 @@ def create_app():
                 'success': False,
                 'error': str(e)
             }), 500
+    # 宏观数据特征条形图API X为top 10的国家，Y为对应的贸易额 s为单位
+    # 前端调取1.国家/省份/商品 2.金额/贸易次数/单价 3.year
+    @app.route("/api/macro_bar_data", methods=["POST"])
+    def api_macro_bar_data():
+        """
+        获取宏观条形图数据
+        接收参数：relation（国家/省份/商品）, param（金额/贸易次数/单价）, year
+        返回：Top 10数据
+        """
+        # 国家：country、省份：province、商品：product
+        # 金额：stats 贸易次数：trade_count 单价：avg_price
+        
+        try:
+            data = request.get_json()
+            # 将国家/省份/商品映射为文件名中的关键字
+            relation_map = {
+                '国家': 'country',
+                '省份': 'province',
+                '商品': 'product'
+            }
+            relation = relation_map.get(data.get('relation', '国家'), 'country')
+            param_map = {
+                '金额': 'stats',
+                '贸易次数': 'trade_count',
+                '单价': 'avg_price'
+            }
+            param = param_map.get(data.get('param', '金额'), 'stats')
+            year = int(data.get('year'))
+            json_path = os.path.join(
+                os.path.dirname(__file__),
+                f'json/total_stats/{relation}_{param}_{year}.json'
+            )
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    bar_data = json.load(f)
+
+                return jsonify({
+                    'success': True,
+                    'data': bar_data
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'{year}年的宏观条形图数据不存在'
+                }), 404
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     # 聚类分析API 传入参数是year 节点，feature： 贸易方式_金额
     @app.route("/api/cluster_analysis", methods=["POST"])
     def api_cluster_analysis():
