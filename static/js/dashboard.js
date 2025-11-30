@@ -20,7 +20,17 @@ const DashboardApp = {
         pieParam: '单价',
         macroStatsYear: 2021,
         macroBarXAxis: 'country',
-        macroBarYear: 2017
+        macroBarYear: 2017,
+        clusterNodeType: '贸易国家',
+        clusterYear: 2021,
+        clusterFeature: '金额总额_单笔均价'
+    },
+
+    // 地图和映射数据缓存
+    mapData: {
+        world: null,
+        china: null,
+        countryMapping: null
     },
 
     // AI对话管理器
@@ -37,6 +47,8 @@ const DashboardApp = {
         this.bindEvents();
         this.loadMacroStats(this.state.macroStatsYear);
         this.updateMacroBarChart();
+        this.loadMapData();
+        this.updateClusterChart();
     },
 
     /**
@@ -189,51 +201,18 @@ const DashboardApp = {
         if (!el || typeof echarts === 'undefined') return;
 
         this.charts.clusterChart = echarts.init(el);
+
+        // 初始选项，稍后会被updateClusterChart更新
         const option = {
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'item',
-                formatter: '{b}: {c}'
-            },
-            xAxis: {
-                show: false,
-                min: 0,
-                max: 100
-            },
-            yAxis: {
-                show: false,
-                min: 0,
-                max: 100
-            },
-            series: [{
-                type: 'scatter',
-                symbolSize: val => 10 + val[2] / 5,
-                data: this.generateClusterData(),
-                itemStyle: {
-                    color: params => {
-                        const colors = ['#22a6b3', '#f9ca24', '#eb4d4b', '#6ab04c'];
-                        return colors[params.dataIndex % 4];
-                    }
-                }
-            }]
+                formatter: '{b}'
+            }
         };
+
         this.charts.clusterChart.setOption(option);
         window.addEventListener('resize', () => this.charts.clusterChart && this.charts.clusterChart.resize());
-    },
-
-    /**
-     * 生成聚类数据（示例）
-     */
-    generateClusterData() {
-        const data = [];
-        for (let i = 0; i < 50; i++) {
-            data.push([
-                Math.random() * 100,
-                Math.random() * 100,
-                Math.random() * 100
-            ]);
-        }
-        return data;
     },
 
     /**
@@ -254,6 +233,9 @@ const DashboardApp = {
 
         // 宏观条形图参数切换
         this.bindMacroBarEvents();
+
+        // 聚类分析参数切换
+        this.bindClusterEvents();
 
         // AI对话功能
         this.bindLLMEvents();
@@ -411,6 +393,36 @@ const DashboardApp = {
             yearSelect.addEventListener('change', (e) => {
                 this.state.macroBarYear = parseInt(e.target.value);
                 this.updateMacroBarChart();
+            });
+        }
+    },
+
+    /**
+     * 绑定聚类分析事件
+     */
+    bindClusterEvents() {
+        const nodeTypeSelect = document.getElementById('clusterNodeTypeSelect');
+        const yearSelect = document.getElementById('clusterYearSelect');
+        const featureSelect = document.getElementById('clusterFeatureSelect');
+
+        if (nodeTypeSelect) {
+            nodeTypeSelect.addEventListener('change', (e) => {
+                this.state.clusterNodeType = e.target.value;
+                this.updateClusterChart();
+            });
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', (e) => {
+                this.state.clusterYear = parseInt(e.target.value);
+                this.updateClusterChart();
+            });
+        }
+
+        if (featureSelect) {
+            featureSelect.addEventListener('change', (e) => {
+                this.state.clusterFeature = e.target.value;
+                this.updateClusterChart();
             });
         }
     },
@@ -991,18 +1003,18 @@ const DashboardApp = {
         if (modal) {
             modal.hide();
         }
-        
+
         // 强制清理残留元素（延迟执行确保动画完成）
         setTimeout(() => {
             // 移除所有 backdrop 遮罩层
             const backdrops = document.querySelectorAll('.modal-backdrop');
             backdrops.forEach(backdrop => backdrop.remove());
-            
+
             // 恢复 body 状态
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
-            
+
             // 确保模态框隐藏
             modalElement.classList.remove('show');
             modalElement.style.display = 'none';
@@ -1010,5 +1022,448 @@ const DashboardApp = {
             modalElement.removeAttribute('aria-modal');
             modalElement.removeAttribute('role');
         }, 300); // 等待 Bootstrap 动画（默认 300ms）
+    },
+
+    /**
+     * 加载地图数据和国家映射
+     */
+    async loadMapData() {
+        try {
+            // 加载世界地图
+            const worldResponse = await fetch('/api/get_map_data?map_type=world');
+            const worldResult = await worldResponse.json();
+            if (worldResult.success) {
+                this.mapData.world = worldResult.data;
+            }
+
+            // 加载中国地图
+            const chinaResponse = await fetch('/api/get_map_data?map_type=china');
+            const chinaResult = await chinaResponse.json();
+            if (chinaResult.success) {
+                this.mapData.china = chinaResult.data;
+            }
+
+            // 加载国家名称映射
+            const mappingResponse = await fetch('/api/get_country_mapping');
+            const mappingResult = await mappingResponse.json();
+            if (mappingResult.success) {
+                this.mapData.countryMapping = mappingResult.data;
+            }
+        } catch (error) {
+            console.error('加载地图数据失败：', error);
+        }
+    },
+
+    /**
+     * 更新聚类图表
+     */
+    async updateClusterChart() {
+        if (!this.charts.clusterChart) return;
+
+        this.showLoading('加载聚类数据...');
+
+        try {
+            // 获取聚类数据
+            const response = await fetch('/api/cluster_analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    year: this.state.clusterYear,
+                    node_type: this.state.clusterNodeType,
+                    feature: this.state.clusterFeature
+                })
+            });
+
+            const result = await response.json();
+            this.hideLoading();
+
+            if (result.success && result.data) {
+                // 根据节点类型选择不同的图表类型
+                if (this.state.clusterNodeType === '贸易国家') {
+                    this.renderWorldMapCluster(result.data);
+                } else if (this.state.clusterNodeType === '商品注册地') {
+                    this.renderChinaMapCluster(result.data);
+                } else if (this.state.clusterNodeType === '贸易方式') {
+                    this.renderScatterCluster(result.data);
+                }
+            } else {
+                console.error('加载聚类数据失败：', result.error);
+                alert(result.error || '加载聚类数据失败');
+            }
+        } catch (error) {
+            this.hideLoading();
+            console.error('加载聚类数据失败：', error);
+            alert('加载聚类数据失败：' + error.message);
+        }
+    },
+
+    /**
+     * 渲染世界地图聚类
+     */
+    renderWorldMapCluster(clusterData) {
+        if (!this.mapData.world) {
+            console.error('世界地图数据未加载');
+            return;
+        }
+
+        // 注册地图
+        echarts.registerMap('world', this.mapData.world);
+
+        // 准备数据：聚类颜色映射
+        const clusterColors = ['#22a6b3', '#f9ca24', '#eb4d4b', '#6ab04c', '#686de0', '#f0932b'];
+
+        // 将聚类数据转换为地图数据
+        const mapData = [];
+        const scatterData = [];
+
+        Object.keys(clusterData).forEach(clusterId => {
+            const cluster = clusterData[clusterId];
+            cluster.forEach(item => {
+                const countryNameCN = item.节点名称;
+                // 查找对应的英文名称
+                let countryNameEN = countryNameCN;
+                if (this.mapData.countryMapping) {
+                    // 反向查找：中文 -> 英文
+                    for (const [enName, cnName] of Object.entries(this.mapData.countryMapping)) {
+                        if (cnName === countryNameCN) {
+                            countryNameEN = enName;
+                            break;
+                        }
+                    }
+                }
+
+                mapData.push({
+                    name: countryNameEN,
+                    value: item.金额总额 || 0,
+                    cluster: item.cluster,
+                    itemStyle: {
+                        areaColor: clusterColors[item.cluster % clusterColors.length]
+                    },
+                    label: {
+                        show: false
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            color: '#fff'
+                        },
+                        itemStyle: {
+                            areaColor: clusterColors[item.cluster % clusterColors.length]
+                        }
+                    },
+                    // 保存完整数据用于tooltip
+                    rawData: item
+                });
+            });
+        });
+
+        const option = {
+            backgroundColor: 'transparent',
+            title: {
+                text: `${this.state.clusterYear}年 ${this.state.clusterNodeType} 聚类分析`,
+                left: 'center',
+                top: 10,
+                textStyle: {
+                    color: '#f5f6fa',
+                    fontSize: 16
+                }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: (params) => {
+                    if (params.data && params.data.rawData) {
+                        const d = params.data.rawData;
+                        return `${d.节点名称}<br/>` +
+                               `聚类: ${d.cluster}<br/>` +
+                               `金额总额: ${(d.金额总额 / 100000000).toFixed(2)}亿<br/>` +
+                               `贸易条数: ${d.贸易条数}<br/>` +
+                               `单笔均价: ${(d.单笔均价 / 10000).toFixed(2)}万`;
+                    }
+                    return params.name;
+                }
+            },
+            visualMap: {
+                show: false,
+                min: 0,
+                max: 5,
+                calculable: false,
+                inRange: {
+                    color: clusterColors
+                }
+            },
+            series: [{
+                type: 'map',
+                map: 'world',
+                roam: true,
+                itemStyle: {
+                    borderColor: '#0b1020',
+                    borderWidth: 1,
+                    areaColor: '#2c3e50'
+                },
+                emphasis: {
+                    itemStyle: {
+                        borderWidth: 2
+                    }
+                },
+                data: mapData
+            }]
+        };
+
+        this.charts.clusterChart.setOption(option, true);
+    },
+
+    /**
+     * 渲染中国地图聚类
+     */
+    renderChinaMapCluster(clusterData) {
+        if (!this.mapData.china) {
+            console.error('中国地图数据未加载');
+            return;
+        }
+
+        // 注册地图
+        echarts.registerMap('china', this.mapData.china);
+
+        // 准备数据：聚类颜色映射
+        const clusterColors = ['#22a6b3', '#f9ca24', '#eb4d4b', '#6ab04c', '#686de0', '#f0932b'];
+
+        // 将聚类数据转换为地图数据
+        const mapData = [];
+
+        Object.keys(clusterData).forEach(clusterId => {
+            const cluster = clusterData[clusterId];
+            cluster.forEach(item => {
+                const provinceName = item.节点名称;
+
+                mapData.push({
+                    name: provinceName,
+                    value: item.金额总额 || 0,
+                    cluster: item.cluster,
+                    itemStyle: {
+                        areaColor: clusterColors[item.cluster % clusterColors.length]
+                    },
+                    label: {
+                        show: false
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            color: '#fff'
+                        },
+                        itemStyle: {
+                            areaColor: clusterColors[item.cluster % clusterColors.length]
+                        }
+                    },
+                    // 保存完整数据用于tooltip
+                    rawData: item
+                });
+            });
+        });
+
+        const option = {
+            backgroundColor: 'transparent',
+            title: {
+                text: `${this.state.clusterYear}年 ${this.state.clusterNodeType} 聚类分析`,
+                left: 'center',
+                top: 10,
+                textStyle: {
+                    color: '#f5f6fa',
+                    fontSize: 16
+                }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: (params) => {
+                    if (params.data && params.data.rawData) {
+                        const d = params.data.rawData;
+                        return `${d.节点名称}<br/>` +
+                               `聚类: ${d.cluster}<br/>` +
+                               `金额总额: ${(d.金额总额 / 100000000).toFixed(2)}亿<br/>` +
+                               `贸易条数: ${d.贸易条数}<br/>` +
+                               `单笔均价: ${(d.单笔均价 / 10000).toFixed(2)}万`;
+                    }
+                    return params.name;
+                }
+            },
+            visualMap: {
+                show: false,
+                min: 0,
+                max: 5,
+                calculable: false,
+                inRange: {
+                    color: clusterColors
+                }
+            },
+            series: [{
+                type: 'map',
+                map: 'china',
+                roam: true,
+                itemStyle: {
+                    borderColor: '#0b1020',
+                    borderWidth: 1,
+                    areaColor: '#2c3e50'
+                },
+                emphasis: {
+                    itemStyle: {
+                        borderWidth: 2
+                    }
+                },
+                data: mapData
+            }]
+        };
+
+        this.charts.clusterChart.setOption(option, true);
+    },
+
+    /**
+     * 渲染散点图聚类（贸易方式）
+     */
+    renderScatterCluster(clusterData) {
+        // 准备数据：聚类颜色映射
+        const clusterColors = ['#22a6b3', '#f9ca24', '#eb4d4b', '#6ab04c', '#686de0', '#f0932b'];
+
+        // 将聚类数据转换为散点图数据
+        const seriesData = [];
+        const clusterNames = {};
+
+        Object.keys(clusterData).forEach(clusterId => {
+            const cluster = clusterData[clusterId];
+            const scatterPoints = [];
+
+            cluster.forEach(item => {
+                // 根据特征提取X和Y坐标
+                let x, y;
+                if (this.state.clusterFeature.includes('金额总额') && this.state.clusterFeature.includes('单笔均价')) {
+                    x = item.金额总额;
+                    y = item.单笔均价;
+                } else if (this.state.clusterFeature.includes('金额总额') && this.state.clusterFeature.includes('贸易条数')) {
+                    x = item.金额总额;
+                    y = item.贸易条数;
+                } else if (this.state.clusterFeature.includes('贸易条数') && this.state.clusterFeature.includes('单笔均价')) {
+                    x = item.贸易条数;
+                    y = item.单笔均价;
+                } else {
+                    x = item.金额总额;
+                    y = item.单笔均价;
+                }
+
+                scatterPoints.push({
+                    value: [x, y],
+                    name: item.节点名称,
+                    rawData: item
+                });
+            });
+
+            clusterNames[clusterId] = `聚类 ${clusterId}`;
+
+            seriesData.push({
+                name: `聚类 ${clusterId}`,
+                type: 'scatter',
+                data: scatterPoints,
+                symbolSize: 15,
+                itemStyle: {
+                    color: clusterColors[parseInt(clusterId) % clusterColors.length]
+                },
+                emphasis: {
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }
+            });
+        });
+
+        // 确定X轴和Y轴的名称
+        let xAxisName, yAxisName;
+        if (this.state.clusterFeature.includes('金额总额') && this.state.clusterFeature.includes('单笔均价')) {
+            xAxisName = '金额总额（元）';
+            yAxisName = '单笔均价（元）';
+        } else if (this.state.clusterFeature.includes('金额总额') && this.state.clusterFeature.includes('贸易条数')) {
+            xAxisName = '金额总额（元）';
+            yAxisName = '贸易条数';
+        } else if (this.state.clusterFeature.includes('贸易条数') && this.state.clusterFeature.includes('单笔均价')) {
+            xAxisName = '贸易条数';
+            yAxisName = '单笔均价（元）';
+        } else {
+            xAxisName = '金额总额（元）';
+            yAxisName = '单笔均价（元）';
+        }
+
+        const option = {
+            backgroundColor: 'transparent',
+            title: {
+                text: `${this.state.clusterYear}年 ${this.state.clusterNodeType} 聚类分析`,
+                left: 'center',
+                top: 10,
+                textStyle: {
+                    color: '#f5f6fa',
+                    fontSize: 16
+                }
+            },
+            legend: {
+                data: Object.values(clusterNames),
+                top: 40,
+                textStyle: {
+                    color: '#bdc3ff'
+                }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: (params) => {
+                    if (params.data && params.data.rawData) {
+                        const d = params.data.rawData;
+                        return `${d.节点名称}<br/>` +
+                               `聚类: ${d.cluster}<br/>` +
+                               `金额总额: ${(d.金额总额 / 100000000).toFixed(2)}亿<br/>` +
+                               `贸易条数: ${d.贸易条数}<br/>` +
+                               `单笔均价: ${(d.单笔均价 / 10000).toFixed(2)}万`;
+                    }
+                    return params.name;
+                }
+            },
+            grid: {
+                left: '10%',
+                right: '5%',
+                bottom: '12%',
+                top: '20%'
+            },
+            xAxis: {
+                type: 'value',
+                name: xAxisName,
+                nameTextStyle: {
+                    color: '#7f8fa6'
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: '#7f8fa6'
+                    }
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: 'rgba(127, 143, 166, 0.2)'
+                    }
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: yAxisName,
+                nameTextStyle: {
+                    color: '#7f8fa6'
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: '#7f8fa6'
+                    }
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: 'rgba(127, 143, 166, 0.2)'
+                    }
+                }
+            },
+            series: seriesData
+        };
+
+        this.charts.clusterChart.setOption(option, true);
     }
 }

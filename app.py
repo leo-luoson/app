@@ -480,36 +480,119 @@ def create_app():
                 'error': str(e)
             }), 500
 
-    # 聚类分析API 传入参数是year 节点，feature： 贸易方式_金额
+    # 聚类分析API 传入参数是year, node_type, feature
     @app.route("/api/cluster_analysis", methods=["POST"])
     def api_cluster_analysis():
         """
         获取聚类分析数据
-        接收参数：year, feature
+        接收参数：year（年份）, node_type（节点类型：贸易国家/商品注册地/贸易方式）, feature（特征组合）
         返回：聚类结果
         """
         try:
             data = request.get_json()
-            year = int(data.get('year'))
-            node = data.get('node', '国家')
-            feature = data.get('feature', '贸易方式_金额')
-            
+            year = int(data.get('year', 2021))
+            node_type = data.get('node_type', '贸易国家')
+            feature = data.get('feature', '金额总额_单笔均价')
+
+            # 构建文件路径
             json_path = os.path.join(
                 os.path.dirname(__file__),
-                f'json/cluster/kmeans/kmeans_data_{year}_{node}_{feature}.json'
+                f'json/cluster/kmeans/kmeans_data_{year}_{node_type}_{feature}.json'
             )
+
             if os.path.exists(json_path):
                 with open(json_path, 'r', encoding='utf-8') as f:
                     cluster_data = json.load(f)
 
                 return jsonify({
                     'success': True,
-                    'data': cluster_data
+                    'data': cluster_data,
+                    'node_type': node_type,
+                    'year': year,
+                    'feature': feature
                 })
             else:
                 return jsonify({
                     'success': False,
-                    'error': f'{year}年的聚类数据不存在'
+                    'error': f'未找到{year}年{node_type}_{feature}的聚类数据'
+                }), 404
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route("/api/get_map_data", methods=["GET"])
+    def api_get_map_data():
+        """
+        获取地图数据（世界地图或中国地图）
+        接收参数：map_type（world/china）
+        返回：GeoJSON格式的地图数据
+        """
+        try:
+            map_type = request.args.get('map_type', 'world')
+
+            if map_type == 'world':
+                json_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'json/cluster/world.json'
+                )
+            elif map_type == 'china':
+                json_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'json/cluster/china.json'
+                )
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': '不支持的地图类型'
+                }), 400
+
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    map_data = json.load(f)
+
+                return jsonify({
+                    'success': True,
+                    'data': map_data
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'地图数据不存在'
+                }), 404
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route("/api/get_country_mapping", methods=["GET"])
+    def api_get_country_mapping():
+        """
+        获取国家名称映射（英文 -> 中文）
+        返回：国家名称映射字典
+        """
+        try:
+            json_path = os.path.join(
+                os.path.dirname(__file__),
+                'json/cluster/country_name_mapping.json'
+            )
+
+            if os.path.exists(json_path):
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    mapping = json.load(f)
+
+                return jsonify({
+                    'success': True,
+                    'data': mapping
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': '国家名称映射数据不存在'
                 }), 404
 
         except Exception as e:
