@@ -39,6 +39,12 @@ const DashboardApp = {
         chatHistory: []
     },
 
+    // 摄像头管理器
+    camera: {
+        stream: null,
+        capturedImage: null
+    },
+
     /**
      * 初始化应用
      */
@@ -239,6 +245,9 @@ const DashboardApp = {
 
         // AI对话功能
         this.bindLLMEvents();
+
+        // 摄像头功能
+        this.bindCameraEvents();
     },
 
     /**
@@ -1465,5 +1474,189 @@ const DashboardApp = {
         };
 
         this.charts.clusterChart.setOption(option, true);
+    },
+
+    /**
+     * 绑定摄像头事件
+     */
+    bindCameraEvents() {
+        const cameraModal = document.getElementById('cameraModal');
+        const btnTakePhoto = document.getElementById('btnTakePhoto');
+        const btnUsePhoto = document.getElementById('btnUsePhoto');
+
+        if (cameraModal) {
+            // 模态框显示时启动摄像头
+            cameraModal.addEventListener('shown.bs.modal', () => {
+                this.startCamera();
+            });
+
+            // 模态框隐藏时停止摄像头
+            cameraModal.addEventListener('hidden.bs.modal', () => {
+                this.stopCamera();
+            });
+        }
+
+        if (btnTakePhoto) {
+            btnTakePhoto.addEventListener('click', () => {
+                this.takePhoto();
+            });
+        }
+
+        if (btnUsePhoto) {
+            btnUsePhoto.addEventListener('click', () => {
+                this.usePhoto();
+            });
+        }
+    },
+
+    /**
+     * 启动摄像头
+     */
+    async startCamera() {
+        const video = document.getElementById('cameraVideo');
+        const capturedImagePreview = document.getElementById('capturedImagePreview');
+        const btnTakePhoto = document.getElementById('btnTakePhoto');
+        const btnUsePhoto = document.getElementById('btnUsePhoto');
+
+        try {
+            // 请求摄像头权限
+            this.camera.stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'environment'
+                }
+            });
+
+            if (video) {
+                video.srcObject = this.camera.stream;
+                video.style.display = 'block';
+            }
+
+            if (capturedImagePreview) {
+                capturedImagePreview.style.display = 'none';
+            }
+
+            if (btnTakePhoto) {
+                btnTakePhoto.style.display = 'inline-block';
+                btnTakePhoto.textContent = '拍照';
+            }
+
+            if (btnUsePhoto) {
+                btnUsePhoto.style.display = 'none';
+            }
+
+            this.camera.capturedImage = null;
+        } catch (error) {
+            console.error('无法访问摄像头:', error);
+            alert('无法访问摄像头，请检查权限设置。\n错误: ' + error.message);
+        }
+    },
+
+    /**
+     * 停止摄像头
+     */
+    stopCamera() {
+        if (this.camera.stream) {
+            this.camera.stream.getTracks().forEach(track => track.stop());
+            this.camera.stream = null;
+        }
+
+        const video = document.getElementById('cameraVideo');
+        if (video) {
+            video.srcObject = null;
+        }
+
+        this.camera.capturedImage = null;
+    },
+
+    /**
+     * 拍照
+     */
+    takePhoto() {
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        const capturedImagePreview = document.getElementById('capturedImagePreview');
+        const capturedImage = document.getElementById('capturedImage');
+        const btnTakePhoto = document.getElementById('btnTakePhoto');
+        const btnUsePhoto = document.getElementById('btnUsePhoto');
+
+        if (!video || !canvas) return;
+
+        // 设置canvas尺寸与video相同
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // 绘制当前帧到canvas
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 转换为base64
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        this.camera.capturedImage = imageDataUrl;
+
+        // 显示预览
+        if (capturedImage && capturedImagePreview) {
+            capturedImage.src = imageDataUrl;
+            capturedImagePreview.style.display = 'block';
+        }
+
+        // 隐藏video
+        if (video) {
+            video.style.display = 'none';
+        }
+
+        // 更新按钮
+        if (btnTakePhoto) {
+            btnTakePhoto.textContent = '重新拍照';
+        }
+
+        if (btnUsePhoto) {
+            btnUsePhoto.style.display = 'inline-block';
+        }
+
+        // 停止摄像头流（节省资源）
+        if (this.camera.stream) {
+            this.camera.stream.getTracks().forEach(track => track.stop());
+            this.camera.stream = null;
+        }
+    },
+
+    /**
+     * 使用拍摄的照片
+     */
+    usePhoto() {
+        if (!this.camera.capturedImage) {
+            alert('请先拍照');
+            return;
+        }
+
+        // 将照片转换为File对象并设置到文件输入框
+        const productImageInput = document.getElementById('productImageInput');
+        if (productImageInput) {
+            // 将base64转换为blob
+            fetch(this.camera.capturedImage)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], 'camera_photo.jpg', { type: 'image/jpeg' });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    productImageInput.files = dataTransfer.files;
+                });
+        }
+
+        // 关闭模态框
+        const cameraModal = document.getElementById('cameraModal');
+        if (cameraModal) {
+            const modal = bootstrap.Modal.getInstance(cameraModal);
+            if (modal) {
+                modal.hide();
+            }
+        }
+
+        // 提示用户
+        setTimeout(() => {
+            alert('照片已加载，请点击"识别"按钮进行商品识别');
+        }, 500);
     }
 }
